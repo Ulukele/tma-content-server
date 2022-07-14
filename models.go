@@ -2,28 +2,34 @@ package main
 
 import (
 	"gorm.io/gorm"
-	"reflect"
 )
+
+// UserModel -- model from sessions db
+type UserModel struct {
+	gorm.Model
+	id       uint `gorm:"primaryKey"`
+	Username string
+}
 
 type ServiceUserModel struct {
 	gorm.Model
 	Id       uint `gorm:"primaryKey"`
 	Username string
-	Teams    []TeamModel
+	Teams    []*TeamModel `gorm:"many2many:user_teams;"`
 }
 
 type TeamModel struct {
 	gorm.Model
 	Id     uint `gorm:"primaryKey"`
 	Name   string
-	Boards []BoardModel
+	UserId uint
+	Users  []*ServiceUserModel `gorm:"many2many:user_teams;"`
 }
 
 type BoardModel struct {
 	gorm.Model
-	Id    uint `gorm:"primaryKey"`
-	Name  string
-	tasks []TaskModel
+	Id   uint `gorm:"primaryKey"`
+	Name string
 }
 
 type TaskModel struct {
@@ -33,18 +39,15 @@ type TaskModel struct {
 }
 
 func (dbe *DBEngine) initTables() error {
-	models := []reflect.Type{
-		reflect.TypeOf((*ServiceUserModel)(nil)),
-		reflect.TypeOf((*TeamModel)(nil)),
-		reflect.TypeOf((*BoardModel)(nil)),
-		reflect.TypeOf((*TaskModel)(nil)),
-	}
 
-	// not sure if that works
-	for _, modelType := range models {
-		if err := dbe.DB.AutoMigrate(modelType.Key()); err != nil {
-			return err
-		}
+	if err := dbe.DB.AutoMigrate(&ServiceUserModel{}); err != nil {
+		return err
+	} else if err := dbe.DB.AutoMigrate(&TeamModel{}); err != nil {
+		return err
+	} else if err := dbe.DB.AutoMigrate(&BoardModel{}); err != nil {
+		return err
+	} else if err := dbe.DB.AutoMigrate(&TaskModel{}); err != nil {
+		return err
 	}
 
 	return nil

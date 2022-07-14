@@ -1,10 +1,18 @@
 package main
 
-type RequestWithSession struct {
-	SessionID string `json:"sessionID" validate:"required"`
+type RequestUser struct {
+	Username string `json:"username" validate:"required"`
 }
 
-type RequestUser struct {
-	RequestWithSession
+type RequestTeams struct {
 	Username string `json:"username" validate:"required"`
+}
+
+type RequestCreateTeam struct {
+	Username string `json:"username" validate:"required"`
+	TeamName string `json:"name" validate:"required"`
+}
+
+type RequestBoards struct {
+	TeamID uint `json:"teamID" validate:"required"`
 }

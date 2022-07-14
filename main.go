@@ -20,10 +20,10 @@ func main() {
 	apiGroup.Get("/user/", server.HandleGetUser)
 
 	teamsGroup := apiGroup.Group("/team/")
-	teamsGroup.Get("/:id/")
-	teamsGroup.Delete("/:id/")
-	teamsGroup.Get("/")
-	teamsGroup.Post("/")
+	//teamsGroup.Get("/:id/") TODO
+	//teamsGroup.Delete("/:id/") TODO
+	teamsGroup.Get("/", server.HandleGetTeams)
+	teamsGroup.Post("/", server.HandleCreateTeam)
 
 	log.Fatal(app.Listen(":8081"))
 }

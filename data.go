@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"log"
 )
 
 type DBEngine struct {
@@ -21,7 +22,6 @@ type DBConfig struct {
 }
 
 func NewDBEngine(dbc DBConfig) (*DBEngine, error) {
-	//"host=localhost user=postgres password=postgres dbname=postgres port=5432 sslmode=disable TimeZone=Asia/Novosibirsk"
 	dsn := fmt.Sprintf(
 		"host=%s user=%s password=%s dbname=%s port=%s sslmode=%s TimeZone=%s",
 		dbc.Host,
@@ -31,6 +31,7 @@ func NewDBEngine(dbc DBConfig) (*DBEngine, error) {
 		dbc.Port,
 		dbc.SSLMode,
 		dbc.Tz)
+	log.Printf("Use config: %s", dsn)
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 
@@ -65,4 +66,49 @@ func (dbe *DBEngine) GetUserInfo(username string) (*ServiceUserModel, error) {
 	}
 
 	return user, nil
+}
+
+func (dbe *DBEngine) GetTeams(username string) ([]TeamModel, error) {
+
+	user := &ServiceUserModel{}
+
+	if err := dbe.DB.
+		Where("Username = ?", username).
+		Take(&user).
+		Error; err != nil {
+		return nil, err
+	}
+
+	var teams []TeamModel
+
+	if err := dbe.DB.
+		Model(&user).
+		Association("Teams").
+		Find(&teams); err != nil {
+		return nil, err
+	}
+
+	return teams, nil
+}
+
+func (dbe *DBEngine) CreateTeam(username string, teamName string) (*TeamModel, error) {
+	user := &ServiceUserModel{}
+
+	if err := dbe.DB.
+		Where("Username = ?", username).
+		Take(&user).
+		Error; err != nil {
+		return nil, err
+	}
+
+	team := &TeamModel{Name: teamName}
+	if err := dbe.DB.
+		Model(&user).
+		Association("Teams").
+		Append(team); err != nil {
+		return nil, err
+	}
+
+	return team, nil
+
 }
