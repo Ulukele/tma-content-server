@@ -44,22 +44,12 @@ func NewDBEngine(dbc DBConfig) (*DBEngine, error) {
 	return dbe, nil
 }
 
-func (dbe *DBEngine) CheckSessionId(username string, session string) bool {
-	var user = ServiceUserModel{}
-	if err := dbe.DB.
-		Where("Username = ? AND Session_ID = ?", username, session).
-		Take(&user).Error; err != nil {
-		return false
-	}
-	return true
-}
+func (dbe *DBEngine) GetUserInfo(username string, password string) (*UserModel, error) {
 
-func (dbe *DBEngine) GetUserInfo(username string) (*ServiceUserModel, error) {
-
-	user := &ServiceUserModel{}
+	user := &UserModel{}
 
 	if err := dbe.DB.
-		Where("Username = ?", username).
+		Where("Username = ? AND Password = ?", username, password).
 		Take(&user).
 		Error; err != nil {
 		return nil, err
@@ -68,9 +58,32 @@ func (dbe *DBEngine) GetUserInfo(username string) (*ServiceUserModel, error) {
 	return user, nil
 }
 
+func (dbe *DBEngine) CreateUser(username string, password string) (*UserModel, error) {
+	var exists bool
+	user := &UserModel{}
+	if err := dbe.DB.Model(&user).
+		Select("count(*) > 0").
+		Where("username = ?", username).
+		Find(&exists).
+		Error; err != nil {
+		return nil, err
+
+	}
+	if exists {
+		return nil, fmt.Errorf("user with username = %s already exists", username)
+	} else {
+		user.Username = username
+		user.Password = password
+		if err := dbe.DB.Create(user).Error; err != nil {
+			return nil, err
+		}
+		return user, nil
+	}
+}
+
 func (dbe *DBEngine) GetTeams(username string) ([]TeamModel, error) {
 
-	user := &ServiceUserModel{}
+	user := &UserModel{}
 
 	if err := dbe.DB.
 		Where("Username = ?", username).
@@ -91,8 +104,35 @@ func (dbe *DBEngine) GetTeams(username string) ([]TeamModel, error) {
 	return teams, nil
 }
 
+func (dbe *DBEngine) GetTeam(username string, teamId uint) (*TeamModel, error) {
+	user := &UserModel{}
+
+	if err := dbe.DB.
+		Where("Username = ?", username).
+		Take(&user).
+		Error; err != nil {
+		return nil, err
+	}
+
+	var teams []TeamModel
+	if err := dbe.DB.
+		Model(&user).
+		Where("Id = ?", teamId).
+		Association("Teams").
+		Find(&teams); err != nil {
+		return nil, err
+	}
+
+	if len(teams) < 1 {
+		return nil, fmt.Errorf("no such team")
+	}
+
+	return &teams[0], nil
+
+}
+
 func (dbe *DBEngine) CreateTeam(username string, teamName string) (*TeamModel, error) {
-	user := &ServiceUserModel{}
+	user := &UserModel{}
 
 	if err := dbe.DB.
 		Where("Username = ?", username).

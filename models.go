@@ -4,17 +4,11 @@ import (
 	"gorm.io/gorm"
 )
 
-// UserModel -- model from sessions db
 type UserModel struct {
-	gorm.Model
-	id       uint `gorm:"primaryKey"`
-	Username string
-}
-
-type ServiceUserModel struct {
 	gorm.Model
 	Id       uint `gorm:"primaryKey"`
 	Username string
+	Password string
 	Teams    []*TeamModel `gorm:"many2many:user_teams;"`
 }
 
@@ -23,7 +17,7 @@ type TeamModel struct {
 	Id     uint `gorm:"primaryKey"`
 	Name   string
 	UserId uint
-	Users  []*ServiceUserModel `gorm:"many2many:user_teams;"`
+	Users  []*UserModel `gorm:"many2many:user_teams;"`
 }
 
 type BoardModel struct {
@@ -40,7 +34,7 @@ type TaskModel struct {
 
 func (dbe *DBEngine) initTables() error {
 
-	if err := dbe.DB.AutoMigrate(&ServiceUserModel{}); err != nil {
+	if err := dbe.DB.AutoMigrate(&UserModel{}); err != nil {
 		return err
 	} else if err := dbe.DB.AutoMigrate(&TeamModel{}); err != nil {
 		return err

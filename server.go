@@ -1,18 +1,17 @@
 package main
 
 import (
-	"fmt"
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
 	"log"
+	"strconv"
 )
 
 // Validator
 var validate = validator.New()
 
 type Server struct {
-	contentDBEngine  *DBEngine
-	sessionsDBEngine *DBEngine
+	contentDBEngine *DBEngine
 }
 
 func NewServer() (*Server, error) {
@@ -44,37 +43,8 @@ func NewServer() (*Server, error) {
 	}
 	log.Print("Create content db engine")
 
-	// configure content db engine
-	// from environment
-	//sDBC := DBConfig{
-	//	Host:     os.Getenv("POSTGRES_S_HOST"),
-	//	User:     os.Getenv("POSTGRES_S_USER"),
-	//	Password: os.Getenv("POSTGRES_S_PASSWORD"),
-	//	Name:     os.Getenv("POSTGRES_S_NAME"),
-	//	Port:     os.Getenv("POSTGRES_S_PORT"),
-	//	SSLMode:  "disable",
-	//	Tz:       os.Getenv("POSTGRES_S_TZ"),
-	//}
-	sDBC := DBConfig{
-		Host:     "localhost",
-		User:     "postgres",
-		Password: "postgres",
-		Name:     "postgres",
-		Port:     "5432",
-		SSLMode:  "disable",
-		Tz:       "Asia/Novosibirsk",
-	}
-
-	log.Print("Try to create sessions db engine")
-	sessionsEngine, err := NewDBEngine(sDBC)
-	if err != nil {
-		return nil, err
-	}
-	log.Print("Create sessions db engine")
-
 	s := &Server{}
 	s.contentDBEngine = contentEngine
-	s.sessionsDBEngine = sessionsEngine
 
 	// init tables with models
 	err = s.contentDBEngine.initTables()
@@ -85,44 +55,6 @@ func NewServer() (*Server, error) {
 	return s, nil
 }
 
-func (s *Server) fetchUser(username string) error {
-
-	// check if already in content db
-	var serviceUser = ServiceUserModel{Username: username}
-	var exists bool
-	err := s.contentDBEngine.DB.Model(&serviceUser).
-		Select("count(*) > 0").
-		Where("Username = ?", username).
-		Find(&exists).
-		Error
-	if err != nil {
-		return err
-	}
-	if exists {
-		return nil
-	}
-
-	// check if in sessions db
-	var user = UserModel{Username: username}
-	err = s.sessionsDBEngine.DB.Model(&user).
-		Select("count(*) > 0").
-		Where("Username = ?", username).
-		Find(&exists).
-		Error
-	if err != nil {
-		return err
-	}
-	if exists {
-		serviceUser := ServiceUserModel{Username: username}
-		if err = s.contentDBEngine.DB.Save(&serviceUser).Error; err != nil {
-			return err
-		}
-		return nil
-	} else {
-		return fmt.Errorf("no such user %s", username)
-	}
-}
-
 // service user handlers
 
 func (s *Server) HandleGetUser(c *fiber.Ctx) error {
@@ -130,25 +62,48 @@ func (s *Server) HandleGetUser(c *fiber.Ctx) error {
 
 	req := RequestUser{}
 	if err := c.BodyParser(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "expect username and sessionID")
+		return fiber.NewError(fiber.StatusBadRequest, "expect username and password")
 	}
 	err := validate.Struct(req)
 	if err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "validation error")
 	}
 
-	if err = s.fetchUser(req.Username); err != nil {
-		log.Printf("error while fetch: %s", err.Error())
-		return fiber.NewError(fiber.StatusBadRequest, "can't find such user")
-	}
-
-	user, err := s.contentDBEngine.GetUserInfo(req.Username)
+	user, err := s.contentDBEngine.GetUserInfo(req.Username, req.Password)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "can't get user info")
 	}
 
-	// looks like useless (get username by username)
-	// but may be added new fields (avatar, status, ...)
+	type UserResp struct {
+		Username string `json:"username"`
+		Password string `json:"password"`
+	}
+
+	ur := UserResp{
+		Username: user.Username,
+		Password: user.Password,
+	}
+
+	return c.JSON(ur)
+}
+
+func (s *Server) HandleCreateUser(c *fiber.Ctx) error {
+	log.Printf("handle create user at %s", c.Path())
+
+	req := RequestCreateUser{}
+	if err := c.BodyParser(&req); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "expect username and password")
+	}
+	err := validate.Struct(req)
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "validation error")
+	}
+
+	user, err := s.contentDBEngine.CreateUser(req.Username, req.Password)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "can't get create user")
+	}
+
 	type UserResp struct {
 		Username string `json:"username"`
 	}
@@ -172,11 +127,6 @@ func (s *Server) HandleGetTeams(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "validation error")
 	}
 
-	if err = s.fetchUser(req.Username); err != nil {
-		log.Printf("error while fetch: %s", err.Error())
-		return fiber.NewError(fiber.StatusBadRequest, "can't find such user")
-	}
-
 	teams, err := s.contentDBEngine.GetTeams(req.Username)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "can't get teams")
@@ -194,6 +144,33 @@ func (s *Server) HandleGetTeams(c *fiber.Ctx) error {
 	return c.JSON(ResponseTeams{Teams: teamsResp})
 }
 
+func (s *Server) HandleGetTeam(c *fiber.Ctx) error {
+	log.Printf("handle get team at %s", c.Path())
+
+	req := RequestTeam{}
+	req.Id = c.Params("id", "")
+
+	if err := c.BodyParser(&req); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "expect username")
+	}
+
+	if err := validate.Struct(req); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "validation error")
+	}
+
+	teamId, err := strconv.Atoi(req.Id)
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "invalid teamId")
+	}
+	team, err := s.contentDBEngine.GetTeam(req.Username, uint(teamId))
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "can't get team")
+	}
+
+	resp := Team{Id: team.Id, Name: team.Name}
+	return c.JSON(resp)
+}
+
 func (s *Server) HandleCreateTeam(c *fiber.Ctx) error {
 	log.Printf("handle create team at %s", c.Path())
 
@@ -204,11 +181,6 @@ func (s *Server) HandleCreateTeam(c *fiber.Ctx) error {
 	err := validate.Struct(req)
 	if err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "validation error")
-	}
-
-	if err = s.fetchUser(req.Username); err != nil {
-		log.Printf("error while fetch: %s", err.Error())
-		return fiber.NewError(fiber.StatusBadRequest, "can't find such user")
 	}
 
 	team, err := s.contentDBEngine.CreateTeam(req.Username, req.TeamName)

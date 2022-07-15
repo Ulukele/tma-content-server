@@ -16,14 +16,16 @@ func main() {
 	}
 
 	apiGroup := app.Group("/api/")
+	internalGroup := apiGroup.Group("/internal/") // don't forward
 
-	apiGroup.Get("/user/", server.HandleGetUser)
+	internalGroup.Get("/user/", server.HandleGetUser) // for check if exist
+	apiGroup.Post("/user/", server.HandleCreateUser)  // registration
 
 	teamsGroup := apiGroup.Group("/team/")
-	//teamsGroup.Get("/:id/") TODO
+	teamsGroup.Get("/:id/", server.HandleGetTeam)
 	//teamsGroup.Delete("/:id/") TODO
-	teamsGroup.Get("/", server.HandleGetTeams)
-	teamsGroup.Post("/", server.HandleCreateTeam)
+	teamsGroup.Get("/", server.HandleGetTeams)    // get all user teams
+	teamsGroup.Post("/", server.HandleCreateTeam) // create new team
 
 	log.Fatal(app.Listen(":8081"))
 }

@@ -2,10 +2,21 @@ package main
 
 type RequestUser struct {
 	Username string `json:"username" validate:"required"`
+	Password string `json:"password" validate:"required"`
+}
+
+type RequestCreateUser struct {
+	Username string `json:"username" validate:"required"`
+	Password string `json:"password" validate:"required"`
 }
 
 type RequestTeams struct {
 	Username string `json:"username" validate:"required"`
+}
+
+type RequestTeam struct {
+	Username string `json:"username" validate:"required"`
+	Id       string `json:"id" validate:"required"`
 }
 
 type RequestCreateTeam struct {
