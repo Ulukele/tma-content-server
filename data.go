@@ -44,7 +44,7 @@ func NewDBEngine(dbc DBConfig) (*DBEngine, error) {
 	return dbe, nil
 }
 
-func (dbe *DBEngine) GetUserInfo(username string, password string) (*UserModel, error) {
+func (dbe *DBEngine) GetUser(username string, password string) (*UserModel, error) {
 
 	user := &UserModel{}
 
@@ -81,14 +81,22 @@ func (dbe *DBEngine) CreateUser(username string, password string) (*UserModel, e
 	}
 }
 
-func (dbe *DBEngine) GetTeams(username string) ([]TeamModel, error) {
-
+func (dbe *DBEngine) getUserByUsername(username string) (*UserModel, error) {
 	user := &UserModel{}
 
 	if err := dbe.DB.
 		Where("Username = ?", username).
 		Take(&user).
 		Error; err != nil {
+		return nil, err
+	}
+	return user, nil
+}
+
+func (dbe *DBEngine) GetTeams(username string) ([]TeamModel, error) {
+
+	user, err := dbe.getUserByUsername(username)
+	if err != nil {
 		return nil, err
 	}
 
@@ -105,12 +113,8 @@ func (dbe *DBEngine) GetTeams(username string) ([]TeamModel, error) {
 }
 
 func (dbe *DBEngine) GetTeam(username string, teamId uint) (*TeamModel, error) {
-	user := &UserModel{}
-
-	if err := dbe.DB.
-		Where("Username = ?", username).
-		Take(&user).
-		Error; err != nil {
+	user, err := dbe.getUserByUsername(username)
+	if err != nil {
 		return nil, err
 	}
 
@@ -128,20 +132,15 @@ func (dbe *DBEngine) GetTeam(username string, teamId uint) (*TeamModel, error) {
 	}
 
 	return &teams[0], nil
-
 }
 
 func (dbe *DBEngine) CreateTeam(username string, teamName string) (*TeamModel, error) {
-	user := &UserModel{}
-
-	if err := dbe.DB.
-		Where("Username = ?", username).
-		Take(&user).
-		Error; err != nil {
+	user, err := dbe.getUserByUsername(username)
+	if err != nil {
 		return nil, err
 	}
 
-	team := &TeamModel{Name: teamName}
+	team := &TeamModel{Name: teamName, OwnerId: user.Id}
 	if err := dbe.DB.
 		Model(&user).
 		Association("Teams").
@@ -150,5 +149,55 @@ func (dbe *DBEngine) CreateTeam(username string, teamName string) (*TeamModel, e
 	}
 
 	return team, nil
+}
 
+func (dbe *DBEngine) DeleteTeam(username string, teamId uint) (*TeamModel, error) {
+	user, err := dbe.getUserByUsername(username)
+	if err != nil {
+		return nil, err
+	}
+
+	team := &TeamModel{}
+	if err := dbe.DB.
+		Where("Id = ? Owner_id", teamId, user.Id).
+		Delete(&team).
+		Error; err != nil {
+		return nil, err
+	}
+
+	return team, nil
+}
+
+func (dbe *DBEngine) CreateBoard(username string, teamId uint, boardName string) (*BoardModel, error) {
+	team, err := dbe.GetTeam(username, teamId)
+	if err != nil {
+		return nil, err
+	}
+
+	board := &BoardModel{Name: boardName}
+	if err := dbe.DB.
+		Model(&team).
+		Association("Boards").
+		Append(board); err != nil {
+		return nil, err
+	}
+
+	return board, nil
+}
+
+func (dbe *DBEngine) GetBoards(username string, teamId uint) ([]BoardModel, error) {
+	team, err := dbe.GetTeam(username, teamId)
+	if err != nil {
+		return nil, err
+	}
+
+	var boards []BoardModel
+	if err = dbe.DB.
+		Model(&team).
+		Association("Boards").
+		Find(&boards); err != nil {
+		return nil, err
+	}
+
+	return boards, nil
 }

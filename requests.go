@@ -1,29 +1,42 @@
 package main
 
-type RequestUser struct {
+// RequestFrom all requests contains user
+// that requires that data
+type RequestFrom struct {
 	Username string `json:"username" validate:"required"`
+}
+
+type RequestUser struct {
+	RequestFrom
 	Password string `json:"password" validate:"required"`
 }
 
 type RequestCreateUser struct {
-	Username string `json:"username" validate:"required"`
+	RequestFrom
 	Password string `json:"password" validate:"required"`
 }
 
 type RequestTeams struct {
-	Username string `json:"username" validate:"required"`
+	RequestFrom
 }
 
 type RequestTeam struct {
-	Username string `json:"username" validate:"required"`
-	Id       string `json:"id" validate:"required"`
+	RequestFrom
+	Id string `json:"id" validate:"required"`
 }
 
 type RequestCreateTeam struct {
-	Username string `json:"username" validate:"required"`
+	RequestFrom
 	TeamName string `json:"name" validate:"required"`
 }
 
 type RequestBoards struct {
-	TeamID uint `json:"teamID" validate:"required"`
+	RequestFrom
+	TeamID uint `json:"teamId" validate:"required"`
+}
+
+type RequestCreateBoard struct {
+	RequestFrom
+	TeamID uint   `json:"teamId" validate:"required"`
+	Name   string `json:"name" validate:"required"`
 }

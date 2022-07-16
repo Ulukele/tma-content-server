@@ -9,21 +9,23 @@ type UserModel struct {
 	Id       uint `gorm:"primaryKey"`
 	Username string
 	Password string
-	Teams    []*TeamModel `gorm:"many2many:user_teams;"`
+	Teams    []*TeamModel `gorm:"many2many:users_teams;"`
 }
 
 type TeamModel struct {
 	gorm.Model
-	Id     uint `gorm:"primaryKey"`
-	Name   string
-	UserId uint
-	Users  []*UserModel `gorm:"many2many:user_teams;"`
+	Id      uint `gorm:"primaryKey"`
+	Name    string
+	OwnerId uint
+	Users   []*UserModel `gorm:"many2many:users_teams;"`
+	Boards  []BoardModel `gorm:"foreignKey:TeamId"`
 }
 
 type BoardModel struct {
 	gorm.Model
-	Id   uint `gorm:"primaryKey"`
-	Name string
+	Id     uint `gorm:"primaryKey"`
+	Name   string
+	TeamId uint
 }
 
 type TaskModel struct {
