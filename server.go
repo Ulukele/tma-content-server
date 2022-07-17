@@ -4,7 +4,6 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
 	"log"
-	"strconv"
 )
 
 // Validator
@@ -61,16 +60,15 @@ func (s *Server) HandleGetUser(c *fiber.Ctx) error {
 	log.Printf("handle get user at %s", c.Path())
 
 	req := RequestUser{}
-	if err := c.BodyParser(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "expect username and password")
-	}
+	req.UserId = c.Locals("userId").(uint)
+
 	err := validate.Struct(req)
 	if err != nil {
 		log.Printf("validation error: %s", err.Error())
 		return fiber.NewError(fiber.StatusBadRequest, "validation error")
 	}
 
-	user, err := s.contentDBEngine.GetUser(req.Username, req.Password)
+	user, err := s.contentDBEngine.GetUser(req.UserId)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "can't get user info")
 	}
@@ -101,28 +99,32 @@ func (s *Server) HandleCreateUser(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusInternalServerError, "can't get create user")
 	}
 
-	ur := User{
-		Id:       user.Id,
-		Username: user.Username,
+	if c.Locals("internal").(bool) {
+		u := UserFull{Password: user.Password}
+		u.Id = user.Id
+		u.Username = user.Username
+		return c.JSON(u)
+	} else {
+		return c.JSON(User{
+			Id:       user.Id,
+			Username: user.Username,
+		})
 	}
-
-	return c.JSON(ur)
 }
 
 func (s *Server) HandleGetTeams(c *fiber.Ctx) error {
 	log.Printf("handle get teams at %s", c.Path())
 
 	req := RequestTeams{}
-	if err := c.BodyParser(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "expect username")
-	}
+	req.UserId = c.Locals("userId").(uint)
+
 	err := validate.Struct(req)
 	if err != nil {
 		log.Printf("validation error: %s", err.Error())
 		return fiber.NewError(fiber.StatusBadRequest, "validation error")
 	}
 
-	teams, err := s.contentDBEngine.GetTeams(req.Username)
+	teams, err := s.contentDBEngine.GetTeams(req.UserId)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "can't get teams")
 	}
@@ -144,22 +146,15 @@ func (s *Server) HandleGetTeam(c *fiber.Ctx) error {
 	log.Printf("handle get team at %s", c.Path())
 
 	req := RequestTeam{}
-	req.Id = c.Params("id", "")
-
-	if err := c.BodyParser(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "expect username")
-	}
+	req.UserId = c.Locals("userId").(uint)
+	req.Id = c.Locals("teamId").(uint)
 
 	if err := validate.Struct(req); err != nil {
 		log.Printf("validation error: %s", err.Error())
 		return fiber.NewError(fiber.StatusBadRequest, "validation error")
 	}
 
-	teamId, err := strconv.Atoi(req.Id)
-	if err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "invalid teamId")
-	}
-	team, err := s.contentDBEngine.GetTeam(req.Username, uint(teamId))
+	team, err := s.contentDBEngine.GetTeam(req.UserId, req.Id)
 	if err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "can't get team")
 	}
@@ -176,8 +171,10 @@ func (s *Server) HandleCreateTeam(c *fiber.Ctx) error {
 	log.Printf("handle create team at %s", c.Path())
 
 	req := RequestCreateTeam{}
+	req.UserId = c.Locals("userId").(uint)
+
 	if err := c.BodyParser(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "expect username and team name")
+		return fiber.NewError(fiber.StatusBadRequest, "expect team name")
 	}
 	err := validate.Struct(req)
 	if err != nil {
@@ -185,7 +182,7 @@ func (s *Server) HandleCreateTeam(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "validation error")
 	}
 
-	team, err := s.contentDBEngine.CreateTeam(req.Username, req.TeamName)
+	team, err := s.contentDBEngine.CreateTeam(req.UserId, req.TeamName)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "can't create team")
 	}
@@ -203,22 +200,15 @@ func (s *Server) HandleDeleteTeam(c *fiber.Ctx) error {
 	log.Printf("handle delete team at %s", c.Path())
 
 	req := RequestTeam{}
-	req.Id = c.Params("id", "")
-
-	if err := c.BodyParser(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "expect username")
-	}
+	req.UserId = c.Locals("userId").(uint)
+	req.Id = c.Locals("teamId").(uint)
 
 	if err := validate.Struct(req); err != nil {
 		log.Printf("validation error: %s", err.Error())
 		return fiber.NewError(fiber.StatusBadRequest, "validation error")
 	}
 
-	teamId, err := strconv.Atoi(req.Id)
-	if err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "invalid teamId")
-	}
-	team, err := s.contentDBEngine.DeleteTeam(req.Username, uint(teamId))
+	team, err := s.contentDBEngine.DeleteTeam(req.UserId, req.Id)
 	if err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "can't get team")
 	}
@@ -235,17 +225,15 @@ func (s *Server) HandleGetBoards(c *fiber.Ctx) error {
 	log.Printf("handle get boards at %s", c.Path())
 
 	req := RequestBoards{}
-
-	if err := c.BodyParser(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "expect teamId")
-	}
+	req.UserId = c.Locals("userId").(uint)
+	req.TeamID = c.Locals("teamId").(uint)
 
 	if err := validate.Struct(req); err != nil {
 		log.Printf("validation error: %s", err.Error())
 		return fiber.NewError(fiber.StatusBadRequest, "validation error")
 	}
 
-	boards, err := s.contentDBEngine.GetBoards(req.Username, req.TeamID)
+	boards, err := s.contentDBEngine.GetBoards(req.UserId, req.TeamID)
 	if err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "can't get boards")
 	}
@@ -267,9 +255,11 @@ func (s *Server) HandleCreateBoard(c *fiber.Ctx) error {
 	log.Printf("handle create board at %s", c.Path())
 
 	req := RequestCreateBoard{}
+	req.UserId = c.Locals("userId").(uint)
+	req.TeamID = c.Locals("teamId").(uint)
 
 	if err := c.BodyParser(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "expect teamId and name")
+		return fiber.NewError(fiber.StatusBadRequest, "expect name")
 	}
 
 	if err := validate.Struct(req); err != nil {
@@ -277,7 +267,7 @@ func (s *Server) HandleCreateBoard(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "validation error")
 	}
 
-	board, err := s.contentDBEngine.CreateBoard(req.Username, req.TeamID, req.Name)
+	board, err := s.contentDBEngine.CreateBoard(req.UserId, req.TeamID, req.Name)
 	if err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "can't create board")
 	}

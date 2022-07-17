@@ -4,6 +4,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"log"
+	"strconv"
 )
 
 func main() {
@@ -17,22 +18,60 @@ func main() {
 
 	apiGroup := app.Group("/api/")
 
-	userGroup := apiGroup.Group("/user/")
+	internalGroup := apiGroup.Group("/internal/", func(c *fiber.Ctx) error {
+		c.Locals("internal", true)
+		return c.Next()
+	}) // for backend
+	publicGroup := apiGroup.Group("/public/", func(c *fiber.Ctx) error {
+		c.Locals("internal", false)
+		return c.Next()
+	}) // for frontend
 
-	userGroup.Get("/", server.HandleGetUser)     // for check if exist
-	userGroup.Post("/", server.HandleCreateUser) // registration
+	internalGroup.Get("/user/:userId/", server.HandleGetUser) // to check username and password
 
-	teamsGroup := apiGroup.Group("/team/")
-	teamsGroup.Get("/:id/", server.HandleGetTeam)
-	teamsGroup.Delete("/:id/", server.HandleDeleteTeam)
+	userGroup := publicGroup.Group("/user/")
+	userGroup.Post("/", server.HandleCreateUser)
+
+	concreteUserGroup := userGroup.Group("/:userId/", func(c *fiber.Ctx) error {
+
+		userId, err := strconv.Atoi(c.Params("userId", ""))
+		if err != nil {
+			return fiber.NewError(fiber.StatusBadRequest, "expect userId")
+		}
+		c.Locals("userId", uint(userId))
+		return c.Next()
+	})
+	concreteUserGroup.Get("/", server.HandleGetUser)
+
+	teamsGroup := concreteUserGroup.Group("/team/")
 	teamsGroup.Get("/", server.HandleGetTeams)    // get all user teams
 	teamsGroup.Post("/", server.HandleCreateTeam) // create new team
 
-	boardsGroup := apiGroup.Group("/board/")
-	//boardsGroup.Get("/:id/") // TODO
-	//boardsGroup.Delete("/:id/") // TODO
+	concreteTeamGroup := teamsGroup.Group("/:teamId/", func(c *fiber.Ctx) error {
+		teamId, err := strconv.Atoi(c.Params("teamId", ""))
+		if err != nil {
+			return fiber.NewError(fiber.StatusBadRequest, "expect teamId")
+		}
+		c.Locals("teamId", uint(teamId))
+		return c.Next()
+	})
+	concreteTeamGroup.Get("/", server.HandleGetTeam)
+	concreteTeamGroup.Delete("/", server.HandleDeleteTeam)
+
+	boardsGroup := concreteTeamGroup.Group("/board/")
 	boardsGroup.Get("/", server.HandleGetBoards)    // get all team boards
 	boardsGroup.Post("/", server.HandleCreateBoard) // create new board
+
+	//concreteBoardGroup := boardsGroup.Group("/:boardId/", func(c *fiber.Ctx) error {
+	//	boardId, err := strconv.Atoi(c.Params("boardId", ""))
+	//	if err != nil {
+	//		return fiber.NewError(fiber.StatusBadRequest, "expect teamId")
+	//	}
+	//	c.Locals("boardId", uint(boardId))
+	//	return c.Next()
+	//})
+	//concreteBoardGroup.Get("/") // TODO
+	//concreteBoardGroup.Delete("/") // TODO
 
 	log.Fatal(app.Listen(":8081"))
 }

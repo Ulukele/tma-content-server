@@ -5,6 +5,11 @@ type User struct {
 	Username string `json:"username"`
 }
 
+type UserFull struct {
+	User
+	Password string `json:"password"`
+}
+
 type Team struct {
 	Id      uint   `json:"id"`
 	Name    string `json:"name"`

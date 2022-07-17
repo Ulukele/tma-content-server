@@ -3,16 +3,15 @@ package main
 // RequestFrom all requests contains user
 // that requires that data
 type RequestFrom struct {
-	Username string `json:"username" validate:"required"`
+	UserId uint `json:"userId" validate:"required"`
 }
 
 type RequestUser struct {
 	RequestFrom
-	Password string `json:"password" validate:"required"`
 }
 
 type RequestCreateUser struct {
-	RequestFrom
+	Username string `json:"username" validate:"required"`
 	Password string `json:"password" validate:"required"`
 }
 
@@ -22,7 +21,7 @@ type RequestTeams struct {
 
 type RequestTeam struct {
 	RequestFrom
-	Id string `json:"id" validate:"required"`
+	Id uint `json:"id" validate:"required"`
 }
 
 type RequestCreateTeam struct {
