@@ -27,13 +27,12 @@ func main() {
 		return c.Next()
 	}) // for frontend
 
-	internalGroup.Get("/user/:userId/", server.HandleGetUser) // to check username and password
+	internalGroup.Get("/user/", server.HandleInternalGetUser) // to receive username and password
 
 	userGroup := publicGroup.Group("/user/")
 	userGroup.Post("/", server.HandleCreateUser)
 
 	concreteUserGroup := userGroup.Group("/:userId/", func(c *fiber.Ctx) error {
-
 		userId, err := strconv.Atoi(c.Params("userId", ""))
 		if err != nil {
 			return fiber.NewError(fiber.StatusBadRequest, "expect userId")

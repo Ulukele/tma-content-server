@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
 	"log"
@@ -56,6 +57,30 @@ func NewServer() (*Server, error) {
 
 // service user handlers
 
+func (s *Server) HandleInternalGetUser(c *fiber.Ctx) error {
+	log.Printf("handle internal get user at %s", c.Path())
+	if !c.Locals("internal").(bool) {
+		return fiber.NewError(fiber.StatusNotFound, "call internal method not from internal path")
+	}
+
+	username := c.Get("Username", "")
+	if username == "" {
+		return fiber.NewError(fiber.StatusBadRequest, "specify username in handler")
+	}
+
+	user := UserFull{}
+	userModel, err := s.contentDBEngine.InternalGetUser(username)
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, fmt.Sprintf("no such user %s", username))
+	}
+
+	user.Id = userModel.Id
+	user.Username = userModel.Username
+	user.Password = userModel.Password
+
+	return c.JSON(user)
+}
+
 func (s *Server) HandleGetUser(c *fiber.Ctx) error {
 	log.Printf("handle get user at %s", c.Path())
 
@@ -99,17 +124,10 @@ func (s *Server) HandleCreateUser(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusInternalServerError, "can't get create user")
 	}
 
-	if c.Locals("internal").(bool) {
-		u := UserFull{Password: user.Password}
-		u.Id = user.Id
-		u.Username = user.Username
-		return c.JSON(u)
-	} else {
-		return c.JSON(User{
-			Id:       user.Id,
-			Username: user.Username,
-		})
-	}
+	return c.JSON(User{
+		Id:       user.Id,
+		Username: user.Username,
+	})
 }
 
 func (s *Server) HandleGetTeams(c *fiber.Ctx) error {

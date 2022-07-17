@@ -44,10 +44,20 @@ func NewDBEngine(dbc DBConfig) (*DBEngine, error) {
 	return dbe, nil
 }
 
-func (dbe *DBEngine) GetUser(userId uint) (*UserModel, error) {
-
+func (dbe *DBEngine) InternalGetUser(username string) (*UserModel, error) {
 	user := &UserModel{}
+	if err := dbe.DB.
+		Where("Username = ?", username).
+		Take(&user).
+		Error; err != nil {
+		return nil, err
+	}
 
+	return user, nil
+}
+
+func (dbe *DBEngine) GetUser(userId uint) (*UserModel, error) {
+	user := &UserModel{}
 	if err := dbe.DB.
 		Where("Id = ?", userId).
 		Take(&user).
