@@ -40,8 +40,34 @@ type RequestBoards struct {
 	TeamID uint `json:"teamId" validate:"required"`
 }
 
+type RequestBoard struct {
+	RequestFrom
+	Id     uint `json:"id" validate:"required"`
+	TeamID uint `json:"teamId" validate:"required"`
+}
+
 type RequestCreateBoard struct {
 	RequestFrom
 	TeamID uint   `json:"teamId" validate:"required"`
 	Name   string `json:"name" validate:"required"`
+}
+
+type RequestTasks struct {
+	RequestFrom
+	TeamID  uint `json:"teamId" validate:"required"`
+	BoardID uint `json:"boardId" validate:"required"`
+}
+
+type RequestTask struct {
+	RequestFrom
+	TeamID  uint `json:"teamId" validate:"required"`
+	BoardID uint `json:"boardId" validate:"required"`
+	Id      uint `json:"taskId" validate:"required"`
+}
+
+type RequestCreateTask struct {
+	RequestFrom
+	TeamID  uint   `json:"teamId" validate:"required"`
+	BoardID uint   `json:"boardId" validate:"required"`
+	Title   string `json:"title" validate:"required"`
 }

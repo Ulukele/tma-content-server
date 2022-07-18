@@ -27,12 +27,15 @@ type BoardModel struct {
 	Id     uint `gorm:"primaryKey"`
 	Name   string
 	TeamId uint
+	Tasks  []TaskModel `gorm:"foreignKey:BoardId"`
 }
 
 type TaskModel struct {
 	gorm.Model
-	Id    uint `gorm:"primaryKey"`
-	Title string
+	Id      uint `gorm:"primaryKey"`
+	Title   string
+	Solved  bool
+	BoardId uint
 }
 
 func (dbe *DBEngine) initTables() error {

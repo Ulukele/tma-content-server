@@ -35,3 +35,39 @@ func (s *Server) SerializeTeamExtended(model *TeamModel) (TeamExtended, error) {
 
 	return teamExtended, nil
 }
+
+func (s *Server) SerializeTask(model *TaskModel) Task {
+	return Task{
+		Id:      model.Id,
+		Title:   model.Title,
+		Solved:  model.Solved,
+		BoardId: model.BoardId,
+	}
+}
+
+func (s *Server) SerializeBoard(model *BoardModel) Board {
+	return Board{
+		Id:     model.Id,
+		Name:   model.Name,
+		TeamId: model.TeamId,
+	}
+}
+
+func (s *Server) SerializeBoardExtended(model *BoardModel) (BoardExtended, error) {
+	tasksModels, err := s.contentDBEngine.GetBoardTasks(model.Id)
+	if err != nil {
+		return BoardExtended{}, err
+	}
+	tasks := make([]Task, 0)
+	for _, task := range tasksModels {
+		tasks = append(tasks, s.SerializeTask(task))
+	}
+	teamExtended := BoardExtended{
+		Tasks: tasks,
+	}
+	teamExtended.Id = model.Id
+	teamExtended.Name = model.Name
+	teamExtended.TeamId = model.TeamId
+
+	return teamExtended, nil
+}

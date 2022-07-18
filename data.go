@@ -188,7 +188,7 @@ func (dbe *DBEngine) DeleteTeam(userId uint, teamId uint) (*TeamModel, error) {
 
 	team := &TeamModel{}
 	if err := dbe.DB.
-		Where("Id = ? Owner_id", teamId, user.Id).
+		Where("Id = ? AND Owner_id = ?", teamId, user.Id).
 		Delete(&team).
 		Error; err != nil {
 		return nil, err
@@ -277,4 +277,147 @@ func (dbe *DBEngine) GetBoards(userId uint, teamId uint) ([]BoardModel, error) {
 	}
 
 	return boards, nil
+}
+
+func (dbe *DBEngine) GetBoard(userId uint, teamId uint, boardId uint) (*BoardModel, error) {
+	team, err := dbe.GetTeam(userId, teamId)
+	if err != nil {
+		return nil, err
+	}
+
+	var boards []BoardModel
+	if err := dbe.DB.
+		Model(&team).
+		Where("Id = ?", boardId).
+		Association("Boards").
+		Find(&boards); err != nil {
+		return nil, err
+	}
+
+	if len(boards) < 1 {
+		return nil, fmt.Errorf("no such board")
+	}
+
+	return &boards[0], nil
+}
+
+func (dbe *DBEngine) GetBoardById(boardId uint) (*BoardModel, error) {
+	board := &BoardModel{}
+	if err := dbe.DB.
+		Where("Id = ?", boardId).
+		Take(&board).
+		Error; err != nil {
+		return nil, err
+	}
+
+	return board, nil
+}
+
+func (dbe *DBEngine) GetBoardTasks(boardId uint) ([]*TaskModel, error) {
+
+	board, err := dbe.GetBoardById(boardId)
+	if err != nil {
+		return nil, err
+	}
+
+	var tasks []*TaskModel
+
+	if err := dbe.DB.
+		Model(&board).
+		Association("Tasks").
+		Find(&tasks); err != nil {
+		return nil, err
+	}
+
+	return tasks, nil
+}
+
+func (dbe *DBEngine) GetTasks(userId uint, teamId uint, boardId uint) ([]TaskModel, error) {
+	board, err := dbe.GetBoard(userId, teamId, boardId)
+	if err != nil {
+		return nil, err
+	}
+
+	var tasks []TaskModel
+	if err = dbe.DB.
+		Model(&board).
+		Association("Tasks").
+		Find(&tasks); err != nil {
+		return nil, err
+	}
+
+	return tasks, nil
+}
+
+func (dbe *DBEngine) DeleteBoard(userId uint, teamId uint, boardId uint) (*BoardModel, error) {
+	team, err := dbe.GetTeam(userId, teamId)
+	if err != nil {
+		return nil, err
+	}
+
+	board := &BoardModel{}
+	if err := dbe.DB.
+		Where("Id = ? AND Team_id = ? ", boardId, team.Id).
+		Delete(&board).
+		Error; err != nil {
+		return nil, err
+	}
+
+	return board, nil
+}
+
+func (dbe *DBEngine) CreateTask(userId uint, teamId uint, boardId uint, title string) (*TaskModel, error) {
+	board, err := dbe.GetBoard(userId, teamId, boardId)
+	if err != nil {
+		return nil, err
+	}
+
+	task := &TaskModel{Title: title}
+	if err := dbe.DB.
+		Model(&board).
+		Association("Tasks").
+		Append(task); err != nil {
+		return nil, err
+	}
+
+	return task, nil
+}
+
+func (dbe *DBEngine) GetTask(userId uint, teamId uint, boardId uint, taskId uint) (*TaskModel, error) {
+	board, err := dbe.GetBoard(userId, teamId, boardId)
+	if err != nil {
+		return nil, err
+	}
+
+	var tasks []TaskModel
+	if err := dbe.DB.
+		Model(&board).
+		Where("Id = ?", taskId).
+		Association("Tasks").
+		Find(&tasks); err != nil {
+		return nil, err
+	}
+
+	if len(tasks) < 1 {
+		return nil, fmt.Errorf("no such task")
+	}
+
+	return &tasks[0], nil
+}
+
+func (dbe *DBEngine) DeleteTask(userId uint, teamId uint, boardId uint, taskId uint) (*TaskModel, error) {
+	board, err := dbe.GetBoard(userId, teamId, boardId)
+	if err != nil {
+		return nil, err
+	}
+
+	task := &TaskModel{}
+	if err := dbe.DB.
+		Where("Id = ? AND Board_id = ? ", taskId, board.Id).
+		Delete(&task).
+		Error; err != nil {
+		return nil, err
+	}
+
+	return task, nil
 }
