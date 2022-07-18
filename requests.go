@@ -24,9 +24,15 @@ type RequestTeam struct {
 	Id uint `json:"id" validate:"required"`
 }
 
+type RequestJoinTeam struct {
+	RequestTeam
+	Password string `json:"password" validate:"required"`
+}
+
 type RequestCreateTeam struct {
 	RequestFrom
-	TeamName string `json:"name" validate:"required"`
+	TeamName     string `json:"name" validate:"required"`
+	TeamPassword string `json:"password" validate:"required"`
 }
 
 type RequestBoards struct {

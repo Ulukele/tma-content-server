@@ -68,6 +68,18 @@ func (dbe *DBEngine) GetUser(userId uint) (*UserModel, error) {
 	return user, nil
 }
 
+func (dbe *DBEngine) GetTeamById(teamId uint) (*TeamModel, error) {
+	team := &TeamModel{}
+	if err := dbe.DB.
+		Where("Id = ?", teamId).
+		Take(&team).
+		Error; err != nil {
+		return nil, err
+	}
+
+	return team, nil
+}
+
 func (dbe *DBEngine) CreateUser(username string, password string) (*UserModel, error) {
 	var exists bool
 	user := &UserModel{}
@@ -110,6 +122,25 @@ func (dbe *DBEngine) GetTeams(userId uint) ([]TeamModel, error) {
 	return teams, nil
 }
 
+func (dbe *DBEngine) GetTeamUsers(teamId uint) ([]*UserModel, error) {
+
+	team, err := dbe.GetTeamById(teamId)
+	if err != nil {
+		return nil, err
+	}
+
+	var users []*UserModel
+
+	if err := dbe.DB.
+		Model(&team).
+		Association("Users").
+		Find(&users); err != nil {
+		return nil, err
+	}
+
+	return users, nil
+}
+
 func (dbe *DBEngine) GetTeam(userId uint, teamId uint) (*TeamModel, error) {
 	user, err := dbe.GetUser(userId)
 	if err != nil {
@@ -132,13 +163,13 @@ func (dbe *DBEngine) GetTeam(userId uint, teamId uint) (*TeamModel, error) {
 	return &teams[0], nil
 }
 
-func (dbe *DBEngine) CreateTeam(userId uint, teamName string) (*TeamModel, error) {
+func (dbe *DBEngine) CreateTeam(userId uint, teamName string, teamPassword string) (*TeamModel, error) {
 	user, err := dbe.GetUser(userId)
 	if err != nil {
 		return nil, err
 	}
 
-	team := &TeamModel{Name: teamName, OwnerId: user.Id}
+	team := &TeamModel{Name: teamName, OwnerId: user.Id, Password: teamPassword}
 	if err := dbe.DB.
 		Model(&user).
 		Association("Teams").
@@ -160,6 +191,54 @@ func (dbe *DBEngine) DeleteTeam(userId uint, teamId uint) (*TeamModel, error) {
 		Where("Id = ? Owner_id", teamId, user.Id).
 		Delete(&team).
 		Error; err != nil {
+		return nil, err
+	}
+
+	return team, nil
+}
+
+func (dbe *DBEngine) JoinTeam(userId uint, teamId uint, teamPassword string) (*TeamModel, error) {
+	user, err := dbe.GetUser(userId)
+	if err != nil {
+		return nil, err
+	}
+
+	team := &TeamModel{}
+	if err := dbe.DB.
+		Where("Id = ? AND Password = ?", teamId, teamPassword).
+		Take(&team).
+		Error; err != nil {
+		return nil, err
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	if err := dbe.DB.
+		Model(&team).
+		Association("Users").
+		Append(user); err != nil {
+		return nil, err
+	}
+
+	return team, nil
+}
+
+func (dbe *DBEngine) LeaveTeam(userId uint, teamId uint) (*TeamModel, error) {
+	user, err := dbe.GetUser(userId)
+	if err != nil {
+		return nil, err
+	}
+
+	team, err := dbe.GetTeam(userId, teamId)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := dbe.DB.
+		Model(&team).
+		Association("Users").
+		Delete(user); err != nil {
 		return nil, err
 	}
 

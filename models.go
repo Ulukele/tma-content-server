@@ -14,11 +14,12 @@ type UserModel struct {
 
 type TeamModel struct {
 	gorm.Model
-	Id      uint `gorm:"primaryKey"`
-	Name    string
-	OwnerId uint
-	Users   []*UserModel `gorm:"many2many:users_teams;"`
-	Boards  []BoardModel `gorm:"foreignKey:TeamId"`
+	Id       uint `gorm:"primaryKey"`
+	Name     string
+	OwnerId  uint
+	Password string
+	Users    []*UserModel `gorm:"many2many:users_teams;"`
+	Boards   []BoardModel `gorm:"foreignKey:TeamId"`
 }
 
 type BoardModel struct {

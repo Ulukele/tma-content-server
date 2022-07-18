@@ -56,6 +56,8 @@ func main() {
 	})
 	concreteTeamGroup.Get("/", server.HandleGetTeam)
 	concreteTeamGroup.Delete("/", server.HandleDeleteTeam)
+	concreteTeamGroup.Post("/join/", server.HandleJoinTeam)
+	concreteTeamGroup.Post("/leave/", server.HandleLeaveTeam)
 
 	boardsGroup := concreteTeamGroup.Group("/board/")
 	boardsGroup.Get("/", server.HandleGetBoards)    // get all team boards

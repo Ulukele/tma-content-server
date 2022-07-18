@@ -11,9 +11,15 @@ type UserFull struct {
 }
 
 type Team struct {
-	Id      uint   `json:"id"`
-	Name    string `json:"name"`
-	OwnerId uint   `json:"ownerId"`
+	Id       uint   `json:"id"`
+	Name     string `json:"name"`
+	OwnerId  uint   `json:"ownerId"`
+	Password string `json:"password"`
+}
+
+type TeamExtended struct {
+	Team
+	Users []User `json:"users"`
 }
 
 type Board struct {

@@ -98,12 +98,7 @@ func (s *Server) HandleGetUser(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusInternalServerError, "can't get user info")
 	}
 
-	ur := User{
-		Id:       user.Id,
-		Username: user.Username,
-	}
-
-	return c.JSON(ur)
+	return c.JSON(s.SerializeUser(user))
 }
 
 func (s *Server) HandleCreateUser(c *fiber.Ctx) error {
@@ -124,10 +119,7 @@ func (s *Server) HandleCreateUser(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusInternalServerError, "can't get create user")
 	}
 
-	return c.JSON(User{
-		Id:       user.Id,
-		Username: user.Username,
-	})
+	return c.JSON(s.SerializeUser(user))
 }
 
 func (s *Server) HandleGetTeams(c *fiber.Ctx) error {
@@ -150,11 +142,7 @@ func (s *Server) HandleGetTeams(c *fiber.Ctx) error {
 	resp := make([]Team, 0)
 
 	for _, teamModel := range teams {
-		resp = append(resp, Team{
-			Id:      teamModel.Id,
-			Name:    teamModel.Name,
-			OwnerId: teamModel.OwnerId,
-		})
+		resp = append(resp, s.SerializeTeam(&teamModel))
 	}
 
 	return c.JSON(resp)
@@ -177,12 +165,11 @@ func (s *Server) HandleGetTeam(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "can't get team")
 	}
 
-	resp := Team{
-		Id:      team.Id,
-		Name:    team.Name,
-		OwnerId: team.OwnerId,
+	res, err := s.SerializeTeamExtended(team)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "can't serialize team")
 	}
-	return c.JSON(resp)
+	return c.JSON(res)
 }
 
 func (s *Server) HandleCreateTeam(c *fiber.Ctx) error {
@@ -200,18 +187,11 @@ func (s *Server) HandleCreateTeam(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "validation error")
 	}
 
-	team, err := s.contentDBEngine.CreateTeam(req.UserId, req.TeamName)
+	team, err := s.contentDBEngine.CreateTeam(req.UserId, req.TeamName, req.TeamPassword)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "can't create team")
 	}
-
-	resp := Team{
-		Id:      team.Id,
-		Name:    team.Name,
-		OwnerId: team.OwnerId,
-	}
-
-	return c.JSON(resp)
+	return c.JSON(s.SerializeTeam(team))
 }
 
 func (s *Server) HandleDeleteTeam(c *fiber.Ctx) error {
@@ -230,13 +210,49 @@ func (s *Server) HandleDeleteTeam(c *fiber.Ctx) error {
 	if err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "can't get team")
 	}
+	return c.JSON(s.SerializeTeam(team))
+}
 
-	resp := Team{
-		Id:      team.Id,
-		Name:    team.Name,
-		OwnerId: team.OwnerId,
+func (s *Server) HandleJoinTeam(c *fiber.Ctx) error {
+	log.Printf("handle join team at %s", c.Path())
+
+	req := RequestJoinTeam{}
+	req.UserId = c.Locals("userId").(uint)
+	req.Id = c.Locals("teamId").(uint)
+
+	if err := c.BodyParser(&req); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "expect team password")
 	}
-	return c.JSON(resp)
+
+	if err := validate.Struct(req); err != nil {
+		log.Printf("validation error: %s", err.Error())
+		return fiber.NewError(fiber.StatusBadRequest, "validation error")
+	}
+
+	team, err := s.contentDBEngine.JoinTeam(req.UserId, req.Id, req.Password)
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "can't join team")
+	}
+	return c.JSON(s.SerializeTeam(team))
+}
+
+func (s *Server) HandleLeaveTeam(c *fiber.Ctx) error {
+	log.Printf("handle leave team at %s", c.Path())
+
+	req := RequestTeam{}
+	req.UserId = c.Locals("userId").(uint)
+	req.Id = c.Locals("teamId").(uint)
+
+	if err := validate.Struct(req); err != nil {
+		log.Printf("validation error: %s", err.Error())
+		return fiber.NewError(fiber.StatusBadRequest, "validation error")
+	}
+
+	team, err := s.contentDBEngine.LeaveTeam(req.UserId, req.Id)
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "can't leave team")
+	}
+	return c.JSON(s.SerializeTeam(team))
 }
 
 func (s *Server) HandleGetBoards(c *fiber.Ctx) error {
