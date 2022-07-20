@@ -4,6 +4,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"log"
+	"os"
 	"strconv"
 )
 
@@ -89,5 +90,5 @@ func main() {
 	concreteTaskGroup.Get("/", server.HandleGetTask)
 	concreteTaskGroup.Delete("/", server.HandleDeleteTask)
 
-	log.Fatal(app.Listen(":8081"))
+	log.Fatal(app.Listen(os.Getenv("LISTEN_ON")))
 }
