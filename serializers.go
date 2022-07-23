@@ -2,8 +2,7 @@ package main
 
 func (s *Server) SerializeUser(model *UserModel) User {
 	return User{
-		Id:       model.Id,
-		Username: model.Username,
+		Id: model.Id,
 	}
 }
 
@@ -17,7 +16,7 @@ func (s *Server) SerializeTeam(model *TeamModel) Team {
 }
 
 func (s *Server) SerializeTeamExtended(model *TeamModel) (TeamExtended, error) {
-	usersModels, err := s.contentDBEngine.GetTeamUsers(model.Id)
+	usersModels, err := s.contentDBEngine.GetTeamUsersIDs(model.Id)
 	if err != nil {
 		return TeamExtended{}, err
 	}

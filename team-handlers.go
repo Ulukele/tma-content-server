@@ -25,7 +25,7 @@ func (s *Server) HandleGetTeams(c *fiber.Ctx) error {
 	resp := make([]Team, 0)
 
 	for _, teamModel := range teams {
-		resp = append(resp, s.SerializeTeam(&teamModel))
+		resp = append(resp, s.SerializeTeam(teamModel))
 	}
 
 	return c.JSON(resp)

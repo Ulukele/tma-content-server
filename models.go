@@ -1,29 +1,25 @@
 package main
 
-import (
-	"gorm.io/gorm"
-)
-
+// UserModel shadow model -- don't exist in db
 type UserModel struct {
-	gorm.Model
-	Id       uint `gorm:"primaryKey"`
-	Username string
-	Password string
-	Teams    []*TeamModel `gorm:"many2many:users_teams;"`
+	Id uint
 }
 
 type TeamModel struct {
-	gorm.Model
 	Id       uint `gorm:"primaryKey"`
 	Name     string
 	OwnerId  uint
 	Password string
-	Users    []*UserModel `gorm:"many2many:users_teams;"`
 	Boards   []BoardModel `gorm:"foreignKey:TeamId"`
 }
 
+type TeamUserRelation struct {
+	Id     uint `gorm:"primaryKey"`
+	TeamId uint
+	UserId uint
+}
+
 type BoardModel struct {
-	gorm.Model
 	Id     uint `gorm:"primaryKey"`
 	Name   string
 	TeamId uint
@@ -31,7 +27,6 @@ type BoardModel struct {
 }
 
 type TaskModel struct {
-	gorm.Model
 	Id      uint `gorm:"primaryKey"`
 	Title   string
 	Solved  bool
@@ -40,9 +35,9 @@ type TaskModel struct {
 
 func (dbe *DBEngine) initTables() error {
 
-	if err := dbe.DB.AutoMigrate(&UserModel{}); err != nil {
+	if err := dbe.DB.AutoMigrate(&TeamModel{}); err != nil {
 		return err
-	} else if err := dbe.DB.AutoMigrate(&TeamModel{}); err != nil {
+	} else if err := dbe.DB.AutoMigrate(&TeamUserRelation{}); err != nil {
 		return err
 	} else if err := dbe.DB.AutoMigrate(&BoardModel{}); err != nil {
 		return err

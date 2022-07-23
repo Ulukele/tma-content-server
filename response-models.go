@@ -1,13 +1,7 @@
 package main
 
 type User struct {
-	Id       uint   `json:"id"`
-	Username string `json:"username"`
-}
-
-type UserFull struct {
-	User
-	Password string `json:"password"`
+	Id uint `json:"id"`
 }
 
 type Team struct {
