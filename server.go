@@ -49,7 +49,7 @@ func (s *Server) StartApp() error {
 	app := fiber.New()
 	app.Use(cors.New())
 
-	apiGroup := app.Group("/api/v1/", func(c *fiber.Ctx) error {
+	apiGroup := app.Group("/api/v1/content/", func(c *fiber.Ctx) error {
 		userId, err := strconv.Atoi(c.Get("UserId", "not a number"))
 		if err != nil {
 			return fiber.NewError(fiber.StatusBadRequest, "expect userId")

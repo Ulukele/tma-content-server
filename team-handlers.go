@@ -89,11 +89,11 @@ func (s *Server) HandleDeleteTeam(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "validation error")
 	}
 
-	team, err := s.contentDBEngine.DeleteTeam(req.UserId, req.Id)
+	_, err := s.contentDBEngine.DeleteTeam(req.UserId, req.Id)
 	if err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "can't get team")
 	}
-	return c.JSON(s.SerializeTeam(team))
+	return c.JSON("")
 }
 
 func (s *Server) HandleJoinTeam(c *fiber.Ctx) error {

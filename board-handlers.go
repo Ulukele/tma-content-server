@@ -94,10 +94,10 @@ func (s *Server) HandleDeleteBoard(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "validation error")
 	}
 
-	board, err := s.contentDBEngine.DeleteBoard(req.UserId, req.TeamID, req.Id)
+	_, err := s.contentDBEngine.DeleteBoard(req.UserId, req.TeamID, req.Id)
 	if err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "can't delete board")
 	}
 
-	return c.JSON(s.SerializeBoard(board))
+	return c.JSON("")
 }

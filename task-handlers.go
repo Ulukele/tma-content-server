@@ -94,10 +94,10 @@ func (s *Server) HandleDeleteTask(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "validation error")
 	}
 
-	task, err := s.contentDBEngine.DeleteTask(req.UserId, req.TeamID, req.BoardID, req.Id)
+	_, err := s.contentDBEngine.DeleteTask(req.UserId, req.TeamID, req.BoardID, req.Id)
 	if err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "can't delete task")
 	}
 
-	return c.JSON(s.SerializeTask(task))
+	return c.JSON("")
 }
