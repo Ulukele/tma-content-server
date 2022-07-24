@@ -50,7 +50,8 @@ func (s *Server) HandleCreateTask(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "validation error")
 	}
 
-	task, err := s.contentDBEngine.CreateTask(req.UserId, req.TeamID, req.BoardID, req.Title)
+	taskEntity := Task{Title: req.Title, Importance: req.Importance, WorkerId: req.WorkerId}
+	task, err := s.contentDBEngine.CreateTask(req.UserId, req.TeamID, req.BoardID, taskEntity)
 	if err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "can't create task")
 	}

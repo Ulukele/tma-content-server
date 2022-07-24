@@ -37,10 +37,12 @@ func (s *Server) SerializeTeamExtended(model *TeamModel) (TeamExtended, error) {
 
 func (s *Server) SerializeTask(model *TaskModel) Task {
 	return Task{
-		Id:      model.Id,
-		Title:   model.Title,
-		Solved:  model.Solved,
-		BoardId: model.BoardId,
+		Id:         model.Id,
+		Title:      model.Title,
+		Solved:     model.Solved,
+		BoardId:    model.BoardId,
+		Importance: model.Importance,
+		WorkerId:   model.WorkerId,
 	}
 }
 

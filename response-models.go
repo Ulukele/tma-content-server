@@ -28,8 +28,10 @@ type BoardExtended struct {
 }
 
 type Task struct {
-	Id      uint   `json:"id"`
-	Title   string `json:"title"`
-	Solved  bool   `json:"solved"`
-	BoardId uint   `json:"boardId"`
+	Id         uint   `json:"id"`
+	Title      string `json:"title"`
+	Solved     bool   `json:"solved"`
+	Importance uint   `json:"importance"`
+	BoardId    uint   `json:"boardId"`
+	WorkerId   uint   `json:"workerId"`
 }

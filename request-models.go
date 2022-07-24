@@ -6,15 +6,6 @@ type RequestFrom struct {
 	UserId uint `json:"userId" validate:"required"`
 }
 
-type RequestUser struct {
-	RequestFrom
-}
-
-type RequestCreateUser struct {
-	Username string `json:"username" validate:"required"`
-	Password string `json:"password" validate:"required"`
-}
-
 type RequestTeams struct {
 	RequestFrom
 }
@@ -67,7 +58,9 @@ type RequestTask struct {
 
 type RequestCreateTask struct {
 	RequestFrom
-	TeamID  uint   `json:"teamId" validate:"required"`
-	BoardID uint   `json:"boardId" validate:"required"`
-	Title   string `json:"title" validate:"required"`
+	TeamID     uint   `json:"teamId" validate:"required"`
+	BoardID    uint   `json:"boardId" validate:"required"`
+	Title      string `json:"title" validate:"required"`
+	Importance uint   `json:"importance"`
+	WorkerId   uint   `json:"workerId"`
 }

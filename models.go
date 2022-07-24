@@ -10,7 +10,7 @@ type TeamModel struct {
 	Name     string
 	OwnerId  uint
 	Password string
-	Boards   []BoardModel `gorm:"foreignKey:TeamId"`
+	Boards   []BoardModel `gorm:"foreignKey:TeamId;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
 }
 
 type TeamUserRelation struct {
@@ -23,14 +23,16 @@ type BoardModel struct {
 	Id     uint `gorm:"primaryKey"`
 	Name   string
 	TeamId uint
-	Tasks  []TaskModel `gorm:"foreignKey:BoardId"`
+	Tasks  []TaskModel `gorm:"foreignKey:BoardId;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
 }
 
 type TaskModel struct {
-	Id      uint `gorm:"primaryKey"`
-	Title   string
-	Solved  bool
-	BoardId uint
+	Id         uint `gorm:"primaryKey"`
+	Title      string
+	Importance uint
+	Solved     bool
+	BoardId    uint
+	WorkerId   uint
 }
 
 func (dbe *DBEngine) initTables() error {

@@ -326,21 +326,37 @@ func (dbe *DBEngine) DeleteBoard(userId uint, teamId uint, boardId uint) (*Board
 	return board, nil
 }
 
-func (dbe *DBEngine) CreateTask(userId uint, teamId uint, boardId uint, title string) (*TaskModel, error) {
+func (dbe *DBEngine) CreateTask(userId uint, teamId uint, boardId uint, task Task) (*TaskModel, error) {
 	board, err := dbe.GetBoard(userId, teamId, boardId)
 	if err != nil {
 		return nil, err
 	}
 
-	task := &TaskModel{Title: title}
+	if task.WorkerId != 0 {
+		var relation *TeamUserRelation
+		var exists bool
+		if err := dbe.DB.
+			Model(&relation).
+			Select("count(*) > 0").
+			Where("user_id = ? AND team_id = ?", task.WorkerId, teamId).
+			Find(&exists).
+			Error; err != nil {
+			return nil, err
+		}
+		if !exists {
+			return nil, fmt.Errorf("can't assign on such user")
+		}
+	}
+
+	taskModel := &TaskModel{Title: task.Title, Importance: task.Importance, WorkerId: task.WorkerId}
 	if err := dbe.DB.
 		Model(&board).
 		Association("Tasks").
-		Append(task); err != nil {
+		Append(taskModel); err != nil {
 		return nil, err
 	}
 
-	return task, nil
+	return taskModel, nil
 }
 
 func (dbe *DBEngine) GetTask(userId uint, teamId uint, boardId uint, taskId uint) (*TaskModel, error) {
