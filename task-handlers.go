@@ -102,3 +102,29 @@ func (s *Server) HandleDeleteTask(c *fiber.Ctx) error {
 
 	return c.JSON("")
 }
+
+func (s *Server) HandleMarkTask(c *fiber.Ctx) error {
+	log.Printf("handle mark task at %s", c.Path())
+
+	req := RequestMarkTask{}
+	req.UserId = c.Locals("userId").(uint)
+	req.TeamID = c.Locals("teamId").(uint)
+	req.BoardID = c.Locals("boardId").(uint)
+	req.Id = c.Locals("taskId").(uint)
+
+	if err := c.BodyParser(&req); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "expect solved")
+	}
+
+	if err := validate.Struct(req); err != nil {
+		log.Printf("validation error: %s", err.Error())
+		return fiber.NewError(fiber.StatusBadRequest, "validation error")
+	}
+
+	task, err := s.contentDBEngine.MarkTask(req.UserId, req.TeamID, req.BoardID, req.Id, req.Solved)
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "can't mark task")
+	}
+
+	return c.JSON(s.SerializeTask(task))
+}

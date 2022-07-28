@@ -56,6 +56,11 @@ type RequestTask struct {
 	Id      uint `json:"taskId" validate:"required"`
 }
 
+type RequestMarkTask struct {
+	RequestTask
+	Solved bool `json:"solved"`
+}
+
 type RequestCreateTask struct {
 	RequestFrom
 	TeamID     uint   `json:"teamId" validate:"required"`

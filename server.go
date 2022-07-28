@@ -104,6 +104,7 @@ func (s *Server) StartApp() error {
 	})
 	concreteTaskGroup.Get("/", s.HandleGetTask)
 	concreteTaskGroup.Delete("/", s.HandleDeleteTask)
+	concreteTaskGroup.Post("/mark/", s.HandleMarkTask)
 
 	return app.Listen(os.Getenv("LISTEN_ON"))
 }

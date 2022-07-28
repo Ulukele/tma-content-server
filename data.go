@@ -397,3 +397,16 @@ func (dbe *DBEngine) DeleteTask(userId uint, teamId uint, boardId uint, taskId u
 
 	return task, nil
 }
+
+func (dbe *DBEngine) MarkTask(userId uint, teamId uint, boardId uint, taskId uint, solved bool) (*TaskModel, error) {
+	task, err := dbe.GetTask(userId, teamId, boardId, taskId)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := dbe.DB.Model(&task).Update("Solved", solved).Error; err != nil {
+		return nil, err
+	}
+
+	return task, nil
+}
